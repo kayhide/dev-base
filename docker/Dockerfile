@@ -10,8 +10,7 @@ RUN sed -i 's/# \(.*multiverse$\)/\1/g' /etc/apt/sources.list \
     && apt-get update \
     && apt-get install -y \
        build-essential checkinstall cmake pkg-config yasm \
-       curl \
-       wget \
+       curl wget git man \
        unzip \
        sudo \
        fakeroot \
@@ -51,8 +50,8 @@ RUN git clone -b ${CLONE_TAG} --depth 1 https://github.com/BVLC/caffe.git . \
 
 # Stack
 RUN cd
-RUN curl -sSL https://get.haskellstack.org/ | sh
 RUN stack upgrade
+ENV PATH=/root/.local/bin:$PATH
 RUN stack update \
     && stack --resolver lts-10.1 setup
 
