@@ -1,91 +1,70 @@
-FROM ubuntu:14.04
+FROM ubuntu:16.04
 MAINTAINER kayhide "kayhide@gmail.com"
 
-ENV HOME=/root
-
 # Install dependencies.
-RUN sed -i 's/# \(.*multiverse$\)/\1/g' /etc/apt/sources.list
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 575159689BEFB442
-RUN echo 'deb http://download.fpcomplete.com/ubuntu yakkety main'| tee /etc/apt/sources.list.d/fpco.list
-RUN sed -i.bak -e "s%http://archive.ubuntu.com/ubuntu/%http://ftp.jaist.ac.jp/pub/Linux/ubuntu/%g" /etc/apt/sources.list
-RUN echo "deb http://us.archive.ubuntu.com/ubuntu trusty main multiverse" >> /etc/apt/sources.list
-RUN apt-get update
-RUN apt-get install -y software-properties-common
+RUN sed -i 's/# \(.*multiverse$\)/\1/g' /etc/apt/sources.list \
+    && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 575159689BEFB442 \
+    && echo 'deb http://download.fpcomplete.com/ubuntu yakkety main'| tee /etc/apt/sources.list.d/fpco.list \
+    && sed -i.bak -e "s%http://archive.ubuntu.com/ubuntu/%http://ftp.jaist.ac.jp/pub/Linux/ubuntu/%g" /etc/apt/sources.list \
+    && echo "deb http://us.archive.ubuntu.com/ubuntu trusty main multiverse" >> /etc/apt/sources.list \
+    && apt-get update \
+    && apt-get install -y \
+       build-essential checkinstall cmake pkg-config yasm \
+       curl \
+       wget \
+       unzip \
+       sudo \
+       fakeroot \
+       stack \
+       nodejs npm \
+       vim
+
+# Postgresql packages
 RUN apt-get install -y --no-install-recommends \
-        curl git htop man unzip vim wget \
-        build-essential \
-        cmake \
-        libatlas-base-dev \
-        libboost-all-dev \
-        libgflags-dev \
-        libgoogle-glog-dev \
-        libhdf5-serial-dev \
-        libleveldb-dev \
-        liblmdb-dev \
-        libopencv-dev \
-        libprotobuf-dev \
-        libsnappy-dev \
-        protobuf-compiler \
-        libboost-thread-dev \
-        cmake-curses-gui \
-        libfftw3-dev \
-        libfaac-dev \
-        qt5-default qttools5-dev-tools \
-        libgstreamer0.10-0 \
-        libgstreamer-plugins-base0.10-0 \
-        libopenblas-dev \
-        libgtk-3-dev \
-        liblapack-dev \
-        liblapacke-dev \
-        checkinstall \
-        fakeroot
+    postgresql-server-dev-all \
+    postgresql-client-9.5 \
+    postgresql-contrib \
+    libpq-dev
 
-RUN apt-get install -y --no-install-recommends \
-        postgresql-server-dev-all \
-        postgresql-client-9.3 \
-        postgresql-contrib \
-        libpq-dev
-
-
-# OpenCV
-ENV OPENCV_ROOT=/opt/opencv
-WORKDIR $OPENCV_ROOT
-
-ENV CLONE_TAG=master
-
-RUN git clone -b ${CLONE_TAG} --depth 1 https://github.com/jayrambhia/Install-OpenCV.git .
-WORKDIR $OPENCV_ROOT/Ubuntu
-RUN chmod +x *
-RUN ./opencv_latest.sh
+# Caffe related packages
+# http://caffe.berkeleyvision.org/install_apt.html
+RUN apt-get install -y --no-install-recommends libboost-all-dev
+RUN apt-get install -y \
+    libprotobuf-dev libleveldb-dev libsnappy-dev libopencv-dev libhdf5-serial-dev protobuf-compiler \
+    libatlas-base-dev libopenblas-dev \
+    liblmdb-dev \
+    libgflags-dev \
+    libgoogle-glog-dev
 
 
 # Caffe
 ENV CAFFE_ROOT=/opt/caffe
 WORKDIR $CAFFE_ROOT
-
-ENV CLONE_TAG=master
-
-RUN git clone -b ${CLONE_TAG} --depth 1 https://github.com/BVLC/caffe.git .
-RUN mkdir build_cpu && cd build_cpu && \
-    cmake -DCPU_ONLY=ON -DBUILD_python=OFF .. && \
-    make -j"$(nproc)" && \
-    make install
+ENV CLONE_TAG=1.0
+RUN git clone -b ${CLONE_TAG} --depth 1 https://github.com/BVLC/caffe.git . \
+    && mkdir build && cd build \
+    && cmake -DCPU_ONLY=ON -DBUILD_python=OFF .. \
+    && make && make install \
+    && rm -rf src \
+    && cd .. && rm -rf .git src python
 
 
 # Stack
-WORKDIR $HOME
-
+RUN cd
 RUN curl -sSL https://get.haskellstack.org/ | sh
 RUN stack upgrade
+RUN stack update \
+    && stack --resolver lts-10.1 setup
 
 
 # Node.js
-WORKDIR $HOME
+RUN cd
+RUN npm cache clean \
+    && npm install n -g \
+    && n stable \
+    && ln -sf /usr/local/bin/node /usr/bin/node
 
-RUN apt-get install -y nodejs npm
-RUN npm cache clean
-RUN npm install n -g
-RUN n stable
-RUN ln -sf /usr/local/bin/node /usr/bin/node
-RUN apt-get purge -y nodejs npm
+
+# Elm
+RUN cd
 RUN npm install --unsafe-perm -g elm
