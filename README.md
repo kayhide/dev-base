@@ -32,10 +32,10 @@ MAINTAINER somebody "somebody@example.com"
 RUN apt-get install -y zsh
 
 USER postgres
-RUN service postgresql start && \
-    psql --command "DO SOMETHING ON POSTGRES" && \
-    psql --command "DO YET ANOTHER THING" && \
-    createdb -O postgres nicedatabase
+RUN service postgresql start \
+    && psql --command "DO SOMETHING ON POSTGRES" \
+    && psql --command "DO YET ANOTHER THING" \
+    && createdb -O postgres nicedatabase
 
 USER root
 
